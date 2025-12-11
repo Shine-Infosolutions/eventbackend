@@ -14,9 +14,25 @@ const passTypeSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  no_of_people: {
+    type: Number,
+    default: 0
+  },
+  no_of_passes: {
+    type: Number,
+    default: 0
+  },
   valid_for_event: {
     type: String,
     default: 'New Year 2025'
+  },
+  description: {
+    type: String,
+    default: ''
+  },
+  is_active: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true

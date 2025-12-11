@@ -35,9 +35,9 @@ const initDatabase = async () => {
 
     // Create default pass types
     const passTypes = [
-      { name: 'Teens', price: 500, max_people: 1, valid_for_event: 'New Year 2025' },
-      { name: 'Couple', price: 1200, max_people: 2, valid_for_event: 'New Year 2025' },
-      { name: 'Family', price: 2000, max_people: 5, valid_for_event: 'New Year 2025' }
+      { name: 'Teens', price: 500, max_people: 1, no_of_people: 0, no_of_passes: 0, valid_for_event: 'New Year 2025' },
+      { name: 'Couple', price: 1200, max_people: 2, no_of_people: 0, no_of_passes: 0, valid_for_event: 'New Year 2025' },
+      { name: 'Family', price: 2000, max_people: 4, no_of_people: 0, no_of_passes: 0, valid_for_event: 'New Year 2025' }
     ];
 
     for (const passType of passTypes) {
