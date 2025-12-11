@@ -15,7 +15,19 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'https://eventbackend-6byp.vercel.app', 'https://eventmanagementfrontend-psi.vercel.app', 'https://eventmanagementfrontend-cbicfl8rz-kritikas-projects-f0fe89de.vercel.app'],
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://eventbackend-6byp.vercel.app'
+    ];
+    
+    // Allow all Vercel deployments
+    if (!origin || allowedOrigins.includes(origin) || origin.includes('vercel.app')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
