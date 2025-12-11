@@ -26,6 +26,11 @@ app.use(express.static('public'));
 // Initialize database
 initDatabase();
 
+// Root route
+app.get('/', (req, res) => {
+  res.json({ message: 'Event Backend API is running!', status: 'OK' });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/pass-types', passTypeRoutes);
