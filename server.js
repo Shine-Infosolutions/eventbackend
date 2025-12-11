@@ -38,9 +38,6 @@ app.use(express.static('public'));
 // app.use('/api/auth/login', loginLimiter);
 // app.use('/api/entry/', gateLimiter);
 
-// Initialize database
-initDatabase();
-
 // Root route
 app.get('/', (req, res) => {
   res.json({ message: 'Event Backend API is running!', status: 'OK' });
@@ -53,6 +50,12 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/entry', entryRoutes);
 app.use('/api/reports', reportRoutes);
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Initialize database and start server
+initDatabase().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}).catch(err => {
+  console.error('Failed to initialize database:', err);
+  process.exit(1);
 });
