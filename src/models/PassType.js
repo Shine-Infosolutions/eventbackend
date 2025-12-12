@@ -1,5 +1,15 @@
 const mongoose = require('mongoose');
 
+const passHolderSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true
+  },
+  phone: {
+    type: String
+  }
+});
+
 const passTypeSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -11,6 +21,7 @@ const passTypeSchema = new mongoose.Schema({
   max_people: {
     type: Number
   },
+  pass_holders: [passHolderSchema],
   no_of_people: {
     type: Number,
     default: 0
@@ -33,6 +44,11 @@ const passTypeSchema = new mongoose.Schema({
   }
 }, {
   timestamps: true
+});
+
+// Remove all validations
+passTypeSchema.pre('validate', function(next) {
+  next();
 });
 
 module.exports = mongoose.model('PassType', passTypeSchema);
