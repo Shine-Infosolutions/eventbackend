@@ -11,59 +11,96 @@ exports.searchPass = async (req, res) => {
     }
 
     // Search by mobile number or Pass ID
-    let booking;
+    let bookings = [];
+    let primaryBooking = null;
     
-    // First try mobile number
-    booking = await Booking.findOne({ buyer_phone: search_value });
+    // Check if search value looks like a phone number (10 digits)
+    const isPhoneNumber = /^\d{10}$/.test(search_value);
     
-    // If not found, try Pass ID
-    if (!booking) {
-      const allBookings = await Booking.find();
-      booking = allBookings.find(b => b.booking_id === search_value);
+    if (isPhoneNumber) {
+      // Find ALL bookings for this phone number
+      bookings = await Booking.find({ buyer_phone: search_value }).populate('pass_type_id');
+      primaryBooking = bookings[0];
+    } else {
+      // Search by Pass ID or name
+      const allBookings = await Booking.find().populate('pass_type_id');
+      
+      // Check if it's a booking ID search
+      const foundByBookingId = allBookings.find(b => b.booking_id === search_value);
+      
+      if (foundByBookingId) {
+        // If found by booking ID, get all bookings for that phone
+        primaryBooking = foundByBookingId;
+        bookings = allBookings.filter(b => b.buyer_phone === foundByBookingId.buyer_phone);
+      } else {
+        // If searching by name, only return bookings with matching names
+        bookings = allBookings.filter(b => 
+          b.buyer_name?.toLowerCase().includes(search_value.toLowerCase())
+        );
+        primaryBooking = bookings[0];
+      }
     }
 
-    if (!booking) {
+    if (!primaryBooking || bookings.length === 0) {
       return res.status(404).json({ message: 'Pass not found for this Pass ID or mobile number' });
     }
 
-    if (booking.payment_status !== 'Paid') {
-      const passTypes = booking.passes ? booking.passes.map(p => p.pass_type_name).join(', ') : (booking.pass_type_id?.name || 'Unknown');
-      const totalPrice = booking.passes ? booking.passes.reduce((sum, p) => sum + p.pass_type_price, 0) : (booking.pass_type_id?.price || 0);
-      
-      return res.status(400).json({ 
-        message: 'Pass not paid', 
-        booking: {
-          booking_id: booking.booking_id,
-          buyer_name: booking.buyer_name,
-          payment_status: booking.payment_status,
-          pass_type: passTypes,
-          price: totalPrice
-        }
-      });
-    }
+    // Check payment status (optional - allow unpaid for now)
+    const unpaidBookings = bookings.filter(b => b.payment_status !== 'Paid');
+    console.log(`Found ${bookings.length} bookings, ${unpaidBookings.length} unpaid`);
 
-    // Calculate totals from passes if new structure, fallback to old structure
-    const totalPeople = booking.passes ? booking.passes.reduce((sum, pass) => sum + pass.people_count, 0) : booking.total_people;
-    const totalEntered = booking.passes ? booking.passes.reduce((sum, pass) => sum + (pass.people_entered || 0), 0) : (booking.people_entered || 0);
-    const passTypes = booking.passes ? booking.passes.map(p => p.pass_type_name).join(', ') : (booking.pass_type_id?.name || 'Unknown');
+    // Calculate totals across ALL bookings for this phone number
+    const totalPeople = bookings.reduce((sum, booking) => {
+      return sum + (booking.passes ? 
+        booking.passes.reduce((passSum, pass) => passSum + pass.people_count, 0) : 
+        (booking.total_people || 1));
+    }, 0);
+    
+    const totalEntered = bookings.reduce((sum, booking) => {
+      return sum + (booking.passes ? 
+        booking.passes.reduce((passSum, pass) => passSum + (pass.people_entered || 0), 0) : 
+        (booking.people_entered || 0));
+    }, 0);
+    
+    const passTypes = primaryBooking.passes ? 
+      primaryBooking.passes.map(p => p.pass_type_name).join(', ') : 
+      (primaryBooking.pass_type_id?.name || 'Unknown');
 
     res.json({
       message: 'Pass found',
       booking: {
-        id: booking._id,
+        id: primaryBooking._id,
+        booking_id: primaryBooking.booking_id,
+        buyer_name: primaryBooking.buyer_name,
+        buyer_phone: primaryBooking.buyer_phone,
+        pass_type_id: primaryBooking.passes && primaryBooking.passes.length > 0 ? { name: passTypes } : primaryBooking.pass_type_id,
+        total_people: totalPeople,
+        checked_in: primaryBooking.checked_in,
+        checked_in_at: primaryBooking.checked_in_at,
+        total_people_entered: totalEntered,
+        people_entered: totalEntered,
+        scanned_by: primaryBooking.scanned_by,
+        notes: primaryBooking.notes,
+        canEnter: totalEntered < totalPeople
+      },
+      allBookings: bookings.map(booking => ({
+        _id: booking._id,
         booking_id: booking.booking_id,
         buyer_name: booking.buyer_name,
         buyer_phone: booking.buyer_phone,
-        pass_type_id: booking.passes && booking.passes.length > 0 ? { name: passTypes } : booking.pass_type_id,
-        total_people: totalPeople,
+        pass_type_id: booking.pass_type_id,
+        total_people: booking.passes ? 
+          booking.passes.reduce((sum, pass) => sum + pass.people_count, 0) : 
+          (booking.total_people || 1),
+        people_entered: booking.passes ? 
+          booking.passes.reduce((sum, pass) => sum + (pass.people_entered || 0), 0) : 
+          (booking.people_entered || 0),
+        payment_status: booking.payment_status,
+        payment_mode: booking.payment_mode,
+        total_amount: booking.total_amount,
         checked_in: booking.checked_in,
-        checked_in_at: booking.checked_in_at,
-        total_people_entered: totalEntered,
-        people_entered: totalEntered, // For backward compatibility
-        scanned_by: booking.scanned_by,
-        notes: booking.notes,
-        canEnter: totalEntered < totalPeople
-      }
+        checked_in_at: booking.checked_in_at
+      }))
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
