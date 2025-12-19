@@ -68,11 +68,17 @@ const bookingSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Generate booking ID in format NY2025-000123
+// Add booking_number field to store custom sequential numbers
+bookingSchema.add({
+  booking_number: {
+    type: String,
+    unique: true
+  }
+});
+
+// Generate booking ID based on pass type
 bookingSchema.virtual('booking_id').get(function() {
-  const year = new Date().getFullYear();
-  const paddedId = this._id.toString().slice(-6).padStart(6, '0');
-  return `NY${year}-${paddedId}`;
+  return this.booking_number || `NY2025-${this._id.toString().slice(-6)}`;
 });
 
 bookingSchema.set('toJSON', { virtuals: true, transform: function(doc, ret) {
