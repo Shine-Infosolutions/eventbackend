@@ -1,6 +1,19 @@
 const Booking = require('../models/Booking');
 const EntryLog = require('../models/EntryLog');
 
+// Get all bookings for gate entry
+exports.getGateBookings = async (req, res) => {
+  try {
+    const bookings = await Booking.find({})
+      .select('buyer_name buyer_phone total_people payment_status')
+      .sort({ createdAt: -1 });
+    
+    res.json(bookings);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Search by Pass ID or mobile number (Gate Staff)
 exports.searchPass = async (req, res) => {
   try {

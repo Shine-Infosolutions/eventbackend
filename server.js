@@ -20,6 +20,7 @@ app.use(cors({
   origin: function (origin, callback) {
     const allowedOrigins = [
       'http://localhost:3000',
+      'http://localhost:5173',
       'https://eventbackend-blond.vercel.app',
       'https://eventmanagementfrontend-orcin.vercel.app',
     ];

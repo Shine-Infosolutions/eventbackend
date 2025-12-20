@@ -92,7 +92,7 @@ exports.createUser = async (req, res) => {
 // Get all users (Admin only)
 exports.getUsers = async (req, res) => {
   try {
-    const users = await User.find().select('-password').sort({ createdAt: -1 });
+    const users = await User.find().sort({ createdAt: -1 });
     res.json(users);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -130,5 +130,71 @@ exports.registerAdmin = async (req, res) => {
     });
   } catch (error) {
     res.status(400).json({ message: error.message });
+  }
+};
+
+// Update user (Admin only)
+exports.updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { email, mobile, name, role, is_active, password } = req.body;
+    
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Update fields
+    if (email !== undefined) user.email = email;
+    if (mobile !== undefined) user.mobile = mobile;
+    if (name !== undefined) user.name = name;
+    if (role !== undefined) user.role = role;
+    if (is_active !== undefined) user.is_active = is_active;
+    if (password && password.trim() !== '') {
+      user.password = password;
+      user.plain_password = password;
+    }
+
+    await user.save();
+
+    res.json({
+      message: 'User updated successfully',
+      user: {
+        id: user._id,
+        email: user.email,
+        mobile: user.mobile,
+        name: user.name,
+        role: user.role,
+        is_active: user.is_active
+      }
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// Delete user (Admin only)
+exports.deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Prevent deleting the last admin
+    if (user.role === 'Admin') {
+      const adminCount = await User.countDocuments({ role: 'Admin', is_active: true });
+      if (adminCount <= 1) {
+        return res.status(400).json({ message: 'Cannot delete the last admin user' });
+      }
+    }
+
+    await User.findByIdAndDelete(id);
+
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

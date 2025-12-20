@@ -68,19 +68,6 @@ const bookingSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Add booking_number field to store custom sequential numbers
-bookingSchema.add({
-  booking_number: {
-    type: String,
-    unique: true
-  }
-});
-
-// Generate booking ID based on pass type
-bookingSchema.virtual('booking_id').get(function() {
-  return this.booking_number || `NY2025-${this._id.toString().slice(-6)}`;
-});
-
 bookingSchema.set('toJSON', { virtuals: true, transform: function(doc, ret) {
   if (ret.total_amount === undefined || ret.total_amount === null) {
     ret.total_amount = 0;
