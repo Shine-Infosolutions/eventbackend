@@ -9,9 +9,15 @@ exports.createBooking = async (req, res) => {
     }
 
     const totalPasses = req.body.total_passes || 1;
-    const calculatedAmount = passType.price * totalPasses;
+    const customPrice = req.body.custom_price ? parseInt(req.body.custom_price) : null;
+    const calculatedAmount = customPrice ? (customPrice * totalPasses) : (passType.price * totalPasses);
     
-    console.log('Creating booking with total_amount:', calculatedAmount);
+    console.log('Creating booking:', {
+      default_price: passType.price,
+      custom_price: customPrice,
+      total_passes: totalPasses,
+      calculated_amount: calculatedAmount
+    });
     
     const bookingData = {
       pass_type_id: req.body.pass_type_id,
@@ -21,12 +27,14 @@ exports.createBooking = async (req, res) => {
       people_entered: 0,
       total_people: parseInt(req.body.total_people) || passType.max_people,
       total_amount: calculatedAmount,
+      custom_price: customPrice,
       payment_status: req.body.payment_status || (req.body.mark_as_paid ? 'Paid' : 'Pending'),
       payment_mode: req.body.payment_mode || 'Cash',
       notes: req.body.notes || '',
       payment_notes: req.body.payment_notes || '',
       payment_screenshot: req.body.payment_screenshot || null,
-      is_owner_pass: req.body.is_owner_pass || false
+      is_owner_pass: req.body.is_owner_pass || false,
+      created_by: req.user ? req.user.id : null
     };
     
     console.log('Booking data before save:', bookingData);
@@ -54,10 +62,43 @@ exports.getBookings = async (req, res) => {
   try {
     const bookings = await Booking.find({})
       .populate('pass_type_id')
+      .populate('created_by', 'name role')
       .sort({ createdAt: -1 })
       .lean();
     
     const bookingsWithDefaults = bookings.map(booking => ({
+      ...booking,
+      pass_holders: booking.pass_holders || [],
+      people_entered: booking.people_entered || 0,
+      total_amount: booking.total_amount || 0,
+      payment_screenshot: booking.payment_screenshot || null,
+      notes: booking.notes || '',
+      payment_notes: booking.payment_notes || '',
+      is_owner_pass: booking.is_owner_pass || false
+    }));
+    
+    res.json(bookingsWithDefaults);
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get bookings excluding admin role for revenue calculation
+exports.getStaffBookings = async (req, res) => {
+  try {
+    const bookings = await Booking.find({})
+      .populate('pass_type_id')
+      .populate('created_by', 'name role')
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    // Filter out bookings created by Admin role
+    const staffBookings = bookings.filter(booking => 
+      !booking.created_by || booking.created_by.role !== 'Admin'
+    );
+    
+    const bookingsWithDefaults = staffBookings.map(booking => ({
       ...booking,
       pass_holders: booking.pass_holders || [],
       people_entered: booking.people_entered || 0,
@@ -158,4 +199,3 @@ exports.deleteBooking = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-

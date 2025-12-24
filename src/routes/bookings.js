@@ -2,6 +2,7 @@ const express = require('express');
 const { 
   createBooking, 
   getBookings, 
+  getStaffBookings,
   getBooking,
   updateBooking,
   updatePaymentStatus,
@@ -15,6 +16,7 @@ const router = express.Router();
 router.post('/', auth, authorize('Admin', 'Sales Staff'), createBooking);
 
 router.get('/', auth, getBookings);
+router.get('/staff-only', auth, getStaffBookings);
 router.get('/:id/public', getBooking); // Public route for pass viewing
 router.get('/:id', auth, getBooking);
 router.put('/:id', auth, authorize('Admin'), updateBooking);

@@ -33,6 +33,10 @@ const bookingSchema = new mongoose.Schema({
     required: false,
     default: 0
   },
+  custom_price: {
+    type: Number,
+    required: false
+  },
   pass_holders: [passHolderSchema],
   people_entered: {
     type: Number,
@@ -71,6 +75,11 @@ const bookingSchema = new mongoose.Schema({
   is_owner_pass: {
     type: Boolean,
     default: false
+  },
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false
   }
 }, {
   timestamps: true
